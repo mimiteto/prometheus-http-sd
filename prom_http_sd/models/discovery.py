@@ -1,6 +1,9 @@
 #! /usr/bin/env python3
 
-""" Module provides discovery model and utils """
+"""
+Module provides discovery result model and utils.
+Use RESULT_CACHE to store and retrieve discovery results.
+"""
 
 import logging
 from threading import Lock
@@ -11,7 +14,7 @@ from prom_http_sd.models.targets import TargetsList
 class DiscoveryResult:
     """ Model for discovery result """
 
-    def __init__(self, logger: logging.Logger | None = None):
+    def __init__(self, logger: logging.Logger | None = None) -> None:
         self._lock = Lock()
         self._last_value: TargetsList | None = None
         self._log = logger or logging.getLogger(self.__class__.__name__)
@@ -25,11 +28,11 @@ class DiscoveryResult:
         self._log.info("Hitting empty cache")
         raise ValueError("Hitting empty cache")
 
-    def set_value(self, value: TargetsList):
+    def set_value(self, value: TargetsList) -> None:
         """ Set new value to cache """
         with self._lock:
             self._log.debug("Setting new value to cache - %s", value)
             self._last_value = value
 
 
-RESULT_CACHE = DiscoveryResult()
+RESULT_CACHE: DiscoveryResult = DiscoveryResult()

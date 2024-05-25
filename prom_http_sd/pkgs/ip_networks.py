@@ -3,21 +3,22 @@
 """ Module provides utils to generate targets based on ip adddresses """
 
 import socket
-from ipaddress import IPv4Network, IPv4Address, ip_network
+from ipaddress import IPv4Address, ip_network
 from contextlib import closing
 
 from prom_http_sd.models.targets import Target, PortNumber
+from prom_http_sd.models.util_types import (
+    IPv4NetworkStr,
+    UTIL_REGISTRY,
+)
 
 
-def get_hosts_for_network(network: str) -> list[IPv4Address]:
+def get_hosts_for_network(network: IPv4NetworkStr) -> list[IPv4Address]:
     """
     Function returns a list of ipv4 addresses that are contained within provided network.
     Raises NotImplementedError if the network is not IPv4 network.
     """
-    net = ip_network(network, strict=False)
-    if isinstance(net, IPv4Network):
-        return list(net.hosts())
-    raise NotImplementedError("Only IPv4 networks are supported")
+    return list(ip_network(network, strict=False).hosts())
 
 
 def check_host(host: IPv4Address) -> bool:
@@ -47,3 +48,9 @@ def check_port(port: PortNumber, host: IPv4Address, timeout: float = 1) -> bool:
 def ipv4_to_target(ip: IPv4Address, port: PortNumber) -> Target:
     """ Function converts IPv4 address to a Target object """
     return Target(host=str(ip), port=port)
+
+
+UTIL_REGISTRY.generators["hostsFromNetwork"] = get_hosts_for_network
+UTIL_REGISTRY.checks["icmpCheck"] = check_host
+UTIL_REGISTRY.checks["tcpCheck"] = check_port
+UTIL_REGISTRY.producers["ipv4ToTarget"] = ipv4_to_target

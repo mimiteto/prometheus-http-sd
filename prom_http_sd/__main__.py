@@ -2,40 +2,52 @@
 
 """ Main module for the prom_http_sd package """
 
-import sys
-from pprint import pprint
+from time import sleep
 
+from threading import Thread
+from typing import Callable
+from pydantic import BaseModel, PositiveInt, ConfigDict
 import prom_http_sd.pkgs.ip_networks as net
 import prom_http_sd.models.targets as t
+import prom_http_sd.models.util_types as ut
+import prom_http_sd.utils as u
+import prom_http_sd.pkgs.ip_networks as net
+
+# pylint: disable=unused-import
+from prom_http_sd.api.discovery import app  # noqa: F401
+from prom_http_sd.models.discovery import RESULT_CACHE
 
 
-def main(nlen: str) -> None:
-    """ Main function """
-    network = f"172.17.0.0/{nlen}"
-    port: t.PortNumber = 80
+def loop(exc: Callable, wait: int | None = None):
+    """ Loops the given function """
+    while True:
+        exc()
+        if wait is not None:
+            sleep(wait)
 
-    targets: t.TargetsList = t.TargetsList(
-        targets=[
-            t.Targets(
-                labels={},
-                targets=t.target_list_factory(
-                    net.get_hosts_for_network,
-                    # [net.check_host, check_port_8080],
-                    [
-                        net.check_host,
-                        lambda host: net.check_port(port, host)
-                    ],
-                    # ipv4_to_target_with_port_8080,
-                    lambda ip: net.ipv4_to_target(ip, port),
-                    network
-                )
-            )
-        ]
+
+conf = ut.Configuration(
+    discovery_confs=[
+        ut.DiscoveryConf(
+            labels={"job": "test"},
+            generator="hostsFromNetwork",
+            checks=[
+                ("icmpCheck", {}),
+                ("tcpCheck", {"port": 80}),
+            ],
+            producer="ipv4ToTarget",
+            producer_args={"port": 80},
+            network='172.17.0.0/26'
+        )
+    ]
+)
+
+discovery_thread = Thread(
+    target=loop,
+    args=(
+        lambda: u.run(conf, RESULT_CACHE),
+        conf.frequency
     )
-    pprint(targets)
+)
 
-
-if __name__ == "__main__":
-    network_len = sys.argv[1] if len(sys.argv) > 1 else "24"
-    print(f"Running main with {network_len}")
-    main(network_len)
+discovery_thread.start()
