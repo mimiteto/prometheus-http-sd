@@ -3,7 +3,9 @@
 """ Module provides utils to generate targets based on ip adddresses """
 
 import socket
-from ipaddress import IPv4Address, ip_network
+from ipaddress import (
+    IPv4Address, IPv4Network, AddressValueError, NetmaskValueError
+)
 from contextlib import closing
 
 from prom_http_sd.models.targets import Target, PortNumber
@@ -18,7 +20,12 @@ def get_hosts_for_network(network: IPv4NetworkStr) -> list[IPv4Address]:
     Function returns a list of ipv4 addresses that are contained within provided network.
     Raises NotImplementedError if the network is not IPv4 network.
     """
-    return list(ip_network(network, strict=False).hosts())
+    try:
+        return list(IPv4Network(network, strict=False).hosts())
+    except (AddressValueError, NetmaskValueError) as exc:
+        raise NotImplementedError(
+            f"{network} is not a valid IPv4 network. IPv6 networks are not supported."
+        ) from exc
 
 
 def check_host(host: IPv4Address) -> bool:
@@ -50,6 +57,7 @@ def ipv4_to_target(ip: IPv4Address, port: PortNumber) -> Target:
     return Target(host=str(ip), port=port)
 
 
+# pylint: disable=unsupported-assignment-operation
 UTIL_REGISTRY.generators["hostsFromNetwork"] = get_hosts_for_network
 UTIL_REGISTRY.checks["icmpCheck"] = check_host
 UTIL_REGISTRY.checks["tcpCheck"] = check_port

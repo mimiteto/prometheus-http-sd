@@ -19,8 +19,8 @@ FROM base
 
 WORKDIR /${APP_NAME}
 ENV PYTHONPATH=/install:/${APP_NAME}
-ENTRYPOINT /usr/local/bin/python -m "prom_http_sd"
-CMD ["/conf/conf.yaml"]
+ENTRYPOINT ["fastapi"]
+CMD ["run", "prom-http-sd.py"]
 
 COPY --from=builder /install /usr/local
 COPY ${APP_NAME} /${APP_NAME}

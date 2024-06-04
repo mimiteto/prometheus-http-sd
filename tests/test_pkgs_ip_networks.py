@@ -22,8 +22,8 @@ class TestIpNetworks(unittest.TestCase):
             [IPv4Address("172.16.0.0")]
         )
         self.assertEqual(
-            nets.get_hosts_for_network("172.16.0.3/24"),
-            [IPv4Address(f"172.16.0.{last_octet}") for last_octet in range(1, 255)]
+            nets.get_hosts_for_network("172.16.0.3/26"),
+            [IPv4Address(f"172.16.0.{last_octet}") for last_octet in range(1, 63)]
         )
         with self.assertRaises(NotImplementedError):
             nets.get_hosts_for_network("2001:db8::/32")

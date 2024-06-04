@@ -5,18 +5,19 @@ Type definitions for SD util functions.
 Use the UTIL_REGISTRY to register util functions.
 """
 
+from threading import Lock
 from ipaddress import IPv4Network, ip_network
 from typing import Annotated, Any, Callable, TypeVar
 from pydantic import (
-    BaseModel, Field, AfterValidator, PositiveInt, ConfigDict
+    BaseModel, Field, AfterValidator, PositiveInt, ConfigDict, PrivateAttr
 )
-from prom_http_sd.models.targets import Target, PortNumber, FQDN
+from prom_http_sd.models.targets import Target, FQDN
 
 
 T = TypeVar("T")
 GeneratorFuncType = Callable[..., list[T]]
-CheckFuncType = Callable[[T], bool]
-ProducerFuncType = Callable[[T], Target]
+CheckFuncType = Callable[..., bool]
+ProducerFuncType = Callable[..., Target]
 
 
 class UtilRegistry(BaseModel):
@@ -24,13 +25,16 @@ class UtilRegistry(BaseModel):
     generators: dict[str, GeneratorFuncType] = Field(default_factory=dict)
     checks: dict[str, CheckFuncType] = Field(default_factory=dict)
     producers: dict[str, ProducerFuncType] = Field(default_factory=dict)
+    _lock: Lock = PrivateAttr(default_factory=Lock)
 
     def _get_util(
         self, name: str, util_dict: dict[str, T], util_type: str
     ) -> T:
         """ Get util function by name """
         try:
-            return util_dict[name]
+            # pylint: disable=not-context-manager
+            with self._lock:
+                return util_dict[name]
         except KeyError as err:
             raise ValueError(f"{util_type} {name} not found") from err
 
@@ -93,6 +97,5 @@ class Configuration(BaseModel):
     model_config = ConfigDict(
         title="Prometheus HTTP Service Discovery Configuration"
     )
-    port: PortNumber = 8765
     frequency: PositiveInt = 10
     discovery_confs: list[DiscoveryConf]

@@ -1,0 +1,15 @@
+---
+discovery_confs:
+  - labels:
+      job: test
+    generator: hostsFromNetwork
+    checks:
+      - - icmpCheck
+        - {}
+      - - tcpCheck
+        - port: 80
+    producer: ipv4ToTarget
+    producer_args:
+      port: 80
+    network: "172.17.0.0/26"
+frequency: 10
